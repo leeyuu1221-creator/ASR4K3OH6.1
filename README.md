@@ -1,0 +1,1 @@
+# spacemitK3-oh6.1-ASR
