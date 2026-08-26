@@ -1,0 +1,1 @@
+/home/cs/project/K3/FunASR/build-riscv64-ohos/package/bin/llama-funasr-sensevoice: ELF 64-bit LSB pie executable, UCB RISC-V, RVC, double-float ABI, version 1 (SYSV), dynamically linked, interpreter /lib/ld-musl-riscv64.so.1, not stripped
