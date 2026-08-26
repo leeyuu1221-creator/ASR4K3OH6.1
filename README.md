@@ -4,22 +4,30 @@
 
 ## 0. 仓库结构与内容
 
-本仓库是从 FunASR 中整理出的 RISC-V OHOS C++/GGUF Runtime 子集，不包含完整的 Python 训练工程。目标设备无需安装 Python、PyTorch 或 ONNX Runtime，即可使用预编译二进制和 GGUF 模型进行本地语音识别。
+本仓库是面向 RISC-V OHOS 的 ASR 部署集合，不包含完整的 Python 训练工程。仓库同时整理了两条运行路线：基于 GGUF/ggml 的 `funasr-cpp`，以及基于 ONNX Runtime 的 `sherpa-onnx`。目标设备不需要安装 Python 或 PyTorch；使用 sherpa-onnx 时需要随程序部署对应的 ONNX Runtime 动态库。
 
 ```text
 ASR4K3OH6.1/
-├── runtime/llama.cpp/             # C++/ggml/llama.cpp 推理源码
-│   ├── fun-asr-nano/              # Fun-ASR-Nano CLI、流式、Encoder
-│   ├── sensevoice/                # SenseVoice CTC Runtime
-│   ├── paraformer/                # Paraformer Runtime
-│   ├── funasr-vad/                # 离线 FSMN-VAD
-│   ├── funasr-vad-stream/         # 流式 FSMN-VAD
-│   ├── funasr-common/             # 音频、VAD、公共头文件
-│   ├── tests/                     # Runtime 测试和基准样例
-│   └── CMakeLists.txt             # Runtime 构建入口
-├── scripts/                       # RISC-V OHOS 交叉编译脚本
-├── build-riscv64-ohos/package/   # 已编译的板端二进制和 ELF 检查日志
-└── BUILD_RISCV64_OHOS.md
+├── README.md                      # 仓库总览和部署说明
+├── funasr-cpp/                    # FunASR llama.cpp/ggml C++ Runtime
+│   ├── runtime/llama.cpp/         # C++/ggml/llama.cpp 推理源码
+│   │   ├── fun-asr-nano/          # Fun-ASR-Nano CLI、流式、Encoder
+│   │   ├── sensevoice/            # SenseVoice CTC Runtime
+│   │   ├── paraformer/            # Paraformer Runtime
+│   │   ├── funasr-vad/            # 离线 FSMN-VAD
+│   │   ├── funasr-vad-stream/     # 流式 FSMN-VAD
+│   │   ├── funasr-common/         # 音频、VAD、公共头文件
+│   │   ├── tests/                 # Runtime 测试和基准样例
+│   │   └── CMakeLists.txt         # Runtime 构建入口
+│   ├── scripts/                   # RISC-V OHOS 交叉编译脚本
+│   ├── build-riscv64-ohos/package/# 已编译的板端二进制和 ELF 检查日志
+│   └── BUILD_RISCV64_OHOS.md      # funasr-cpp 编译与部署说明
+└── sherpa-onnx/                   # sherpa-onnx K3/OpenHarmony 构建资料
+    ├── source/                    # sherpa-onnx 源码
+    ├── dependencies/spacemit-ort/# SpacemiT ONNX Runtime 和 EP
+    ├── dependencies/alsa/         # 可选 RISC-V64 musl ALSA 依赖
+    ├── toolchain/                 # K3/OpenHarmony 交叉编译配置
+    └── BUILD_K3_OHOS.md           # sherpa-onnx 编译、部署指南
 ```
 
 当前仓库保留八个板端目标：`cli`、`stream`、`encoder`、`embd`、`sensevoice`、`paraformer`、`vad` 和 `vad-stream`。CAM++、SenseVoice IME2 和 CLI Bench 不在当前部署范围内。
@@ -49,11 +57,11 @@ ASR4K3OH6.1/
 
 sherpa-onnx 是基于 ONNX Runtime 的跨平台语音推理框架，覆盖 ASR、VAD、关键词检测、说话人处理、TTS 等多类语音任务。
 
-目前 sherpa-onnx 尚未提供完整开箱即用的 **SpaceMIT K3 OpenHarmony 6.1** 官方构建版本，因此在 K3 上部署时需要：
+目前 sherpa-onnx 的 K3/OpenHarmony 构建资料已整理在 [`sherpa-onnx/`](sherpa-onnx/) 中，其中包含源码、SpacemiT ONNX Runtime/EP、可选 ALSA 依赖和交叉编译配置。在 K3 上部署时需要：
 
-1. 下载 sherpa-onnx 源码；
+1. 准备 `sherpa-onnx/` 中的源码和依赖；
 2. 准备 K3 OpenHarmony 对应的交叉编译工具链；
-3. 交叉编译 sherpa-onnx 及相关依赖；
+3. 按 `sherpa-onnx/BUILD_K3_OHOS.md` 交叉编译 sherpa-onnx 及相关依赖；
 4. 根据运行需求选择通用 CPU 后端或 SpaceMIT ONNX Runtime Execution Provider；
 5. 将模型、动态库和应用程序部署到 K3 设备进行测试。
 
@@ -90,7 +98,7 @@ llama-funasr-cpp 基于 llama.cpp、ggml 等基础组件实现，适合在 K3/Op
 
 ### 3.1 sherpa-onnx
 
-sherpa-onnx 需要单独准备其源码、ONNX Runtime、模型、动态库和应用程序。本仓库不包含 sherpa-onnx 的构建产物。
+sherpa-onnx 的源码、SpacemiT ONNX Runtime/EP 依赖、可选 ALSA 依赖和构建指南位于 `sherpa-onnx/`。完整交叉工具链因体积过大未提交，具体获取方式见 `sherpa-onnx/BUILD_K3_OHOS.md`。模型和最终应用程序仍需根据实际业务单独准备。
 
 ### 3.2 llama-funasr-cpp
 
@@ -200,8 +208,8 @@ dd if=/data/data/funasr/test.wav bs=44 skip=1 2>/dev/null | \
 
 ## 6. 相关文档
 
-- [RISC-V OHOS 编译与部署步骤](BUILD_RISCV64_OHOS.md)
-- [RISC-V OHOS 编译与部署步骤](BUILD_RISCV64_OHOS.md)
-- [Fun-ASR-Nano Runtime](runtime/llama.cpp/fun-asr-nano/README.md)
-- [流式识别说明](runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
-- [Runtime 设计说明](runtime/llama.cpp/DESIGN.md)
+- [FunASR C++ RISC-V OHOS 编译与部署步骤](funasr-cpp/BUILD_RISCV64_OHOS.md)
+- [sherpa-onnx K3 OpenHarmony 编译指南](sherpa-onnx/BUILD_K3_OHOS.md)
+- [Fun-ASR-Nano Runtime](funasr-cpp/runtime/llama.cpp/fun-asr-nano/README.md)
+- [流式识别说明](funasr-cpp/runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
+- [Runtime 设计说明](funasr-cpp/runtime/llama.cpp/DESIGN.md)
