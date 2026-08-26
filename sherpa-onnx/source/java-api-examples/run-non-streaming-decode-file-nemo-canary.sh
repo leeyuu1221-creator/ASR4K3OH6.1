@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -ex
+
+source ./setup.sh
+
+if [ ! -f sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8/encoder.int8.onnx ]; then
+  curl -SL -O https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8.tar.bz2
+  tar xvf sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8.tar.bz2
+  rm sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8.tar.bz2
+fi
+
+java \
+  -Dsherpa_onnx.native.path=$PWD/../build/lib \
+  -cp ../sherpa-onnx/java-api/target/sherpa-onnx-jvm-*.jar \
+  NonStreamingDecodeFileNemoCanary.java

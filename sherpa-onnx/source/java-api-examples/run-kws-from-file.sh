@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -ex
+
+source ./setup.sh
+
+if [ ! -f ./sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/tokens.txt ]; then
+  curl -SL -O https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
+  tar xvf sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
+  rm sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
+fi
+
+java \
+  -Dsherpa_onnx.native.path=$PWD/../build/lib \
+  -cp ../sherpa-onnx/java-api/target/sherpa-onnx-jvm-*.jar \
+  ./KeywordSpotterFromFile.java

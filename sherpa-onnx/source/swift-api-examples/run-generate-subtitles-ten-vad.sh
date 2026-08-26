@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -ex
+
+if [ ! -d ../build-macos ]; then
+  echo "Please run ../build-macos.sh first!"
+  exit 1
+fi
+
+if [ ! -d ./sherpa-onnx-whisper-tiny.en ]; then
+  echo "Please download the pre-trained model for testing."
+  echo "You can refer to"
+  echo ""
+  echo "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/whisper/tiny.en.html"
+  echo ""
+  echo "for help"
+
+  wget -q https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2
+  tar xvf sherpa-onnx-whisper-tiny.en.tar.bz2
+  rm sherpa-onnx-whisper-tiny.en.tar.bz2
+  ls -lh sherpa-onnx-whisper-tiny.en
+fi
+if [ ! -f ./ten-vad.onnx ]; then
+  echo "downloading ten-vad"
+  wget -q https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/ten-vad.onnx
+fi
+
+if [ ! -e ./generate-subtitles-ten-vad ]; then
+  # Note: We use -lc++ to link against libc++ instead of libstdc++
+  swiftc \
+    -lc++ \
+    -I ../build-macos/install/include \
+    -import-objc-header ./SherpaOnnx-Bridging-Header.h \
+    ./generate-subtitles.swift  ./SherpaOnnx.swift \
+    -L ../build-macos/install/lib/ \
+    -l sherpa-onnx-c-api \
+    -l onnxruntime \
+    -o generate-subtitles-ten-vad
+
+  strip generate-subtitles-ten-vad
+else
+  echo "./generate-subtitles-ten-vad exists - skip building"
+fi
+
+export DYLD_LIBRARY_PATH=$PWD/../build-macos/install/lib:$DYLD_LIBRARY_PATH
+./generate-subtitles-ten-vad
