@@ -162,6 +162,7 @@ AISHELL-1 test 包含 7176 条普通话音频，累积音频时长约 10 小时�
 
 ## 5. 相关文档
 
+- [RISC-V OHOS 编译与部署步骤](BUILD_RISCV64_OHOS.md)
 - [RISC-V OHOS 构建和部署说明](README-riscv64-spacemit-ohos.md)
 - [验证记录](VALIDATION-riscv64-spacemit-ohos.md)
 - [Fun-ASR-Nano Runtime](runtime/llama.cpp/fun-asr-nano/README.md)
