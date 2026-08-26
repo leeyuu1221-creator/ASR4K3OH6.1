@@ -19,9 +19,7 @@ ASR4K3OH6.1/
 │   └── CMakeLists.txt             # Runtime 构建入口
 ├── scripts/                       # RISC-V OHOS 交叉编译脚本
 ├── build-riscv64-ohos/package/   # 已编译的板端二进制和 ELF 检查日志
-├── README-riscv64-spacemit-ohos.md
-├── VALIDATION-riscv64-spacemit-ohos.md
-└── LLAMA_FUNASR_STREAM_K3_AGENT_PLAN.md
+└── BUILD_RISCV64_OHOS.md
 ```
 
 当前仓库保留八个板端目标：`cli`、`stream`、`encoder`、`embd`、`sensevoice`、`paraformer`、`vad` 和 `vad-stream`。CAM++、SenseVoice IME2 和 CLI Bench 不在当前部署范围内。
@@ -160,11 +158,50 @@ AISHELL-1 test 包含 7176 条普通话音频，累积音频时长约 10 小时�
 | 总错误数 | **1,850** | 3,098 |
 | 识别正确率 | **98.23%** | **97.04%** |
 
-## 5. 相关文档
+## 5. 命令行使用
+
+在板端执行任何 Runtime 命令前，先准备根文件系统和 SpaceMIT TCM：
+
+```bash
+mount -o rw,remount /
+spacemit-tcm-smi -c
+export SPACEMIT_DISABLE_TCM=1
+```
+
+SenseVoice：
+
+```bash
+/data/data/funasr/bin/llama-funasr-sensevoice \
+  -m /data/data/funasr/sensevoice-small/sensevoice-small-q8.gguf \
+  -a /data/data/funasr/test.wav
+```
+
+Fun-ASR-Nano CLI：
+
+```bash
+/data/data/funasr/bin/llama-funasr-cli \
+  --enc /data/data/funasr/fun-asr-nano/funasr-encoder-f16.gguf \
+  -m /data/data/funasr/fun-asr-nano/qwen3-0.6b-q4km.gguf \
+  -a /data/data/funasr/test.wav \
+  --output jsonl
+```
+
+Fun-ASR-Nano 流式识别：
+
+```bash
+dd if=/data/data/funasr/test.wav bs=44 skip=1 2>/dev/null | \
+/data/data/funasr/bin/llama-funasr-stream \
+  --enc /data/data/funasr/fun-asr-nano/funasr-encoder-f16.gguf \
+  -m /data/data/funasr/fun-asr-nano/qwen3-0.6b-q4km.gguf \
+  --vad /data/data/funasr/fsmn-vad.gguf \
+  --stdin-s16le \
+  --output jsonl
+```
+
+## 6. 相关文档
 
 - [RISC-V OHOS 编译与部署步骤](BUILD_RISCV64_OHOS.md)
-- [RISC-V OHOS 构建和部署说明](README-riscv64-spacemit-ohos.md)
-- [验证记录](VALIDATION-riscv64-spacemit-ohos.md)
+- [RISC-V OHOS 编译与部署步骤](BUILD_RISCV64_OHOS.md)
 - [Fun-ASR-Nano Runtime](runtime/llama.cpp/fun-asr-nano/README.md)
 - [流式识别说明](runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
 - [Runtime 设计说明](runtime/llama.cpp/DESIGN.md)

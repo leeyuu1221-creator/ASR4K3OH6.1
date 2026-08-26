@@ -134,13 +134,19 @@ Paraformer:
   shell 'chmod 755 /data/data/funasr/bin/*'
 ```
 
-## 7. 板端运行
+## 7. 板端准备与运行
 
-如果设备没有 `/dev/tcm_sync_mem`，先设置：
+在板端执行 ASR 命令前，先执行：
 
 ```bash
+mount -o rw,remount /
+spacemit-tcm-smi -c
 export SPACEMIT_DISABLE_TCM=1
 ```
+
+其中 `mount` 用于重新挂载可写根文件系统，`spacemit-tcm-smi -c` 用于执行
+SpaceMIT TCM 配置。设备没有 `/dev/tcm_sync_mem` 时保留
+`SPACEMIT_DISABLE_TCM=1`，避免启用不可用的 TCM 路径。
 
 SenseVoice：
 
@@ -191,5 +197,5 @@ done
 - `file`/`readelf` 确认目标为 RISC-V ELF；
 - 流式模式能够输出 `ready`、`final` 和 `done` 事件。
 
-当前仓库的详细验证记录见
-[VALIDATION-riscv64-spacemit-ohos.md](VALIDATION-riscv64-spacemit-ohos.md)。
+编译产物中的 ELF 检查日志位于
+`build-riscv64-ohos/package/logs/`。
