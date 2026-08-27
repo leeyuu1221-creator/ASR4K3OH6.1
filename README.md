@@ -168,43 +168,54 @@ AISHELL-1 test 包含 7176 条普通话音频，累积音频时长约 10 小时�
 
 ## 5. 命令行使用
 
-在板端执行任何 Runtime 命令前，先准备根文件系统和 SpaceMIT TCM：
-
-```bash
-mount -o rw,remount /
-spacemit-tcm-smi -c
-export SPACEMIT_DISABLE_TCM=1
-```
+## 5.1 sherpa-onnx使用sensevoice指令
 
 SenseVoice：
-
 ```bash
-/data/data/funasr/bin/llama-funasr-sensevoice \
-  -m /data/data/funasr/sensevoice-small/sensevoice-small-q8.gguf \
-  -a /data/data/funasr/test.wav
+cd /path/to/sherpa-onnx/
+./bin/sherpa-onnx-vad-with-offline-asr \
+  --silero-vad-model=silero_vad.onnx \
+  --sense-voice-model=./asr/sensevoice/model_quant_optimized.onnx \
+  --tokens=./asr/sensevoice/tokens.sherpa.txt \
+  --sense-voice-use-itn=true \
+  --num-threads=4 \
+  [audio_file.wav]
 ```
 
-Fun-ASR-Nano CLI：
+## 5.2 llama-funasr使用funasr-nano指令
 
+在执行llama.cpp推理框架之前，先执行：
+mount -o rw,remount /
+spacemit-tcm-smi -c
+
+Fun-ASR-Nano CLI：
 ```bash
-/data/data/funasr/bin/llama-funasr-cli \
-  --enc /data/data/funasr/fun-asr-nano/funasr-encoder-f16.gguf \
-  -m /data/data/funasr/fun-asr-nano/qwen3-0.6b-q4km.gguf \
-  -a /data/data/funasr/test.wav \
-  --output jsonl
+cd /path/to/funasr
+./bin/llama-funasr-cli \
+  --enc ./fun-asr-nano/funasr-encoder-f16.gguf \
+  -m ./fun-asr-nano/qwen3-0.6b-q4km.gguf \
+  --vad fsmn-vad.gguf
+  -a test.wav \
+  --output text
 ```
 
 Fun-ASR-Nano 流式识别：
 
 ```bash
-dd if=/data/data/funasr/test.wav bs=44 skip=1 2>/dev/null | \
-/data/data/funasr/bin/llama-funasr-stream \
-  --enc /data/data/funasr/fun-asr-nano/funasr-encoder-f16.gguf \
-  -m /data/data/funasr/fun-asr-nano/qwen3-0.6b-q4km.gguf \
-  --vad /data/data/funasr/fsmn-vad.gguf \
+arecord -q \
+  -D plughw:1,0 \
+  -t raw \
+  -f S16_LE \
+  -c 1 \
+  -r 16000 | \
+./bin/llama-funasr-stream \
+  --enc fun-asr-nano/funasr-encoder-f16.gguf \
+  -m fun-asr-nano/qwen3-0.6b-q4km.gguf \
   --stdin-s16le \
-  --output jsonl
+  --vad fsmn-vad.gguf
+  --output text
 ```
+
 
 ## 6. 相关文档
 
