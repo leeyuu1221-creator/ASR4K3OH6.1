@@ -34,6 +34,9 @@ ASR4K3OH6.1/
     ├── dependencies/spacemit-ort/
     ├── dependencies/alsa/
     ├── toolchain/
+    ├── prebuilt/riscv64-ohos-musl-spacemit-2.0.6/
+    │   ├── bin/                # 板端预编译 sherpa-onnx 可执行文件
+    │   └── lib/                # 板端预编译动态库
     └── BUILD_K3_OHOS.md
 ```
 
@@ -157,18 +160,18 @@ source/                     sherpa-onnx 源码
 dependencies/spacemit-ort/ SpaceMIT ONNX Runtime / EP
 dependencies/alsa/         可选 ALSA 依赖
 toolchain/                  交叉编译配置
+prebuilt/                   板端 bin/ 和 lib/ 预编译产物
 BUILD_K3_OHOS.md            编译与部署说明
 ```
 
 ### K3 部署流程
 
-1. 准备 sherpa-onnx 源码；
-2. 准备 SpaceMIT ONNX Runtime / EP；
-3. 准备 K3 OpenHarmony 交叉编译工具链；
-4. 按 `BUILD_K3_OHOS.md` 完成交叉编译；
-5. 选择通用 CPU 或 SpaceMIT EP；
-6. 部署模型、动态库和程序到 K3；
-7. 根据模型测试线程数和推理后端。
+1. 直接使用 `prebuilt/riscv64-ohos-musl-spacemit-2.0.6/`，或准备源码和依赖；
+2. 如需重新编译，准备 K3 OpenHarmony 交叉编译工具链；
+3. 按 `BUILD_K3_OHOS.md` 完成交叉编译；
+4. 选择通用 CPU 或 SpaceMIT EP；
+5. 部署模型、动态库和程序到 K3；
+6. 根据模型测试线程数和推理后端。
 
 ### 优点
 
@@ -323,6 +326,7 @@ sherpa-onnx/
 * SpaceMIT ONNX Runtime / EP
 * 可选 ALSA 依赖
 * toolchain 配置
+* `prebuilt/riscv64-ohos-musl-spacemit-2.0.6/bin/` 和 `lib/` 板端预编译产物
 * 编译文档
 
 完整交叉编译工具链由于体积较大未提交仓库。
@@ -334,6 +338,9 @@ sherpa-onnx/BUILD_K3_OHOS.md
 ```
 
 模型和最终业务程序需根据实际项目单独准备。
+
+如果不需要重新编译，可直接使用预编译目录中的 `bin/` 和 `lib/`，并将模型
+文件复制到板端后设置 `LD_LIBRARY_PATH`。
 
 ---
 
