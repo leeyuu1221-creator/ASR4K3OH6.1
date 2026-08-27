@@ -313,9 +313,7 @@ arecord -q \
 - funasr-nano GGUF模型权重：https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-GGUF
 - ASR相关学习https://zsc.github.io/asr_sd_tutorial/html/index.html
 
-  ## 8. 附录
+## 8. 附录
 
-  ### 8.1 
 
-* ASR 学习资料
-  https://zsc.github.io/asr_sd_tutorial/html/index.html
+
