@@ -40,10 +40,8 @@ ASR4K3OH6.1/
     └── BUILD_K3_OHOS.md
 ```
 
-### 当前包含的板端目标
-
+### 当前包含llama-funasr的板端目标
 仓库当前保留 8 个 Runtime 目标：
-
 * `cli`
 * `stream`
 * `encoder`
@@ -52,12 +50,6 @@ ASR4K3OH6.1/
 * `paraformer`
 * `vad`
 * `vad-stream`
-
-以下组件暂不在当前部署范围：
-
-* CAM++
-* SenseVoice IME2
-* CLI Bench
 
 > 本仓库主要用于 **RISC-V OpenHarmony 端侧部署**，不包含完整的 Python 模型训练工程。
 
