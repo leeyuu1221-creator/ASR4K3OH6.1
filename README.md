@@ -224,3 +224,12 @@ arecord -q \
 - [Fun-ASR-Nano Runtime](funasr-cpp/runtime/llama.cpp/fun-asr-nano/README.md)
 - [流式识别说明](funasr-cpp/runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
 - [Runtime 设计说明](funasr-cpp/runtime/llama.cpp/DESIGN.md)
+
+## 7. 参考资料
+- sherpa-onnx：https://github.com/k2-fsa/sherpa-onnx
+- funasr.cpp: https://www.funasr.com/llama-cpp.html
+- K3 鸿蒙交叉编译工具链oh-20260630： https://www.funasr.com/llama-cpp.html
+- spacemit-onnxruntime: https://github.com/spacemit-com/onnxruntime/releases/tag/2.0.6
+- sensevoice ONNX模型权重: https://archive.spacemit.com/spacemit-ai/model_zoo/asr/sensevoice.tar.gz
+- funasr-nano GGUF模型权重：https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-GGUF
+- 
