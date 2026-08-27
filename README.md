@@ -134,6 +134,8 @@ Fun-ASR-Nano 参数量约为 **800M**，采用 Audio Encoder + Adaptor + LLM 的
 
 相比 SenseVoice-small，Fun-ASR-Nano 模型更大、解码更复杂，但在上下文理解、专业名词、同音词和复杂文本场景下具有更高的识别准确率。
 
+**显著缺陷：Fun-ASR-Nano 属于基于 LLM 的生成式 ASR 模型，相比于sensevoice存在严重幻觉。在长时间静音、低信噪比背景噪声、非语音音频或语音内容不清晰的情况下，模型可能受历史上下文和语言模型先验影响，生成音频中实际并不存在的词句。对于需要长时间连续监听、无人值守或对误触发较为敏感的应用场景，需要额外结合 VAD、静音过滤、置信度判定等机制抑制此类问题。**
+
 ### 4.3 性能对比
 
 | 对比项 | SenseVoice-small | Fun-ASR-Nano |
@@ -232,4 +234,8 @@ arecord -q \
 - spacemit-onnxruntime: https://github.com/spacemit-com/onnxruntime/releases/tag/2.0.6
 - sensevoice ONNX模型权重: https://archive.spacemit.com/spacemit-ai/model_zoo/asr/sensevoice.tar.gz
 - funasr-nano GGUF模型权重：https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-GGUF
-- 
+- ASR相关学习https://zsc.github.io/asr_sd_tutorial/html/index.html
+
+  ## 8. 附录
+
+  ### 8.1 
