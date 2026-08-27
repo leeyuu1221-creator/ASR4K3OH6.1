@@ -136,527 +136,130 @@ Fun-ASR-Nano
 | 识别正确率 |   **98.23%** |       **97.04%** |
 
 ---
+## 2. 推理框架对比
 
-# 2. 推理框架对比
+### 2.1 sherpa-onnx
 
-## 2.1 sherpa-onnx
+sherpa-onnx 是基于 ONNX Runtime 的跨平台语音推理框架，覆盖 ASR、VAD、关键词检测、说话人处理、TTS 等多类语音任务。
 
-`sherpa-onnx` 是基于 **ONNX Runtime** 的跨平台语音推理框架。
+目前 sherpa-onnx 的 K3/OpenHarmony 构建资料已整理在 [`sherpa-onnx/`](sherpa-onnx/) 中，其中包含源码、SpacemiT ONNX Runtime/EP、可选 ALSA 依赖和交叉编译配置。在 K3 上部署时需要：
 
-主要覆盖：
+1. 准备 `sherpa-onnx/` 中的源码和依赖；
+2. 准备 K3 OpenHarmony 对应的交叉编译工具链；
+3. 按 `sherpa-onnx/BUILD_K3_OHOS.md` 交叉编译 sherpa-onnx 及相关依赖；
+4. 根据运行需求选择通用 CPU 后端或 SpaceMIT ONNX Runtime Execution Provider；
+5. 将模型、动态库和应用程序部署到 K3 设备进行测试。
 
-* ASR
-* VAD
-* 关键词检测
-* 说话人处理
-* TTS
-* 其他语音任务
+sherpa-onnx 的优势在于模型生态成熟，能够方便地替换不同 ASR 模型，而不需要大幅调整上层业务接口。
 
-K3/OpenHarmony 相关资料位于：
+### 2.2 llama-funasr-cpp
 
-```text
-sherpa-onnx/
-```
+llama-funasr-cpp 基于 llama.cpp、ggml 等基础组件实现，适合在 K3/OpenHarmony 上进行 FunASR 模型的本地 C/C++ 推理。当前支持 Fun-ASR-Nano、SenseVoice 和 Paraformer，并使用针对该 Runtime 导出的 GGUF 权重。
 
-其中包含：
+与 sherpa-onnx 相比，llama-funasr-cpp 的模型范围更集中，但对包含语言模型解码过程的 Fun-ASR-Nano 更有针对性。当前仓库在官方离线识别基础上补充了 Fun-ASR-Nano + FSMN-VAD 的分段式流式识别能力。
 
-```text
-source/                     sherpa-onnx 源码
-dependencies/spacemit-ort/ SpaceMIT ONNX Runtime / EP
-dependencies/alsa/         可选 ALSA 依赖
-toolchain/                  交叉编译配置
-prebuilt/                   板端 bin/ 和 lib/ 预编译产物
-BUILD_K3_OHOS.md            编译与部署说明
-```
+这里的“流式”是持续接收 PCM、进行 VAD 分段并输出 `partial/final` 事件；当前模型仍按音频窗口重新推理，不等同于严格的 causal streaming encoder。
 
-### K3 部署流程
+### 2.3 框架能力对比
 
-1. 直接使用 `prebuilt/riscv64-ohos-musl-spacemit-2.0.6/`，或准备源码和依赖；
-2. 如需重新编译，准备 K3 OpenHarmony 交叉编译工具链；
-3. 按 `BUILD_K3_OHOS.md` 完成交叉编译；
-4. 选择通用 CPU 或 SpaceMIT EP；
-5. 部署模型、动态库和程序到 K3；
-6. 根据模型测试线程数和推理后端。
+| 对比项 | sherpa-onnx | llama-funasr-cpp |
+|---|---|---|
+| 框架定位 | 通用 ONNX 语音推理框架 | 基于 llama.cpp / ggml 的 FunASR C/C++ 边缘推理框架 |
+| 主要模型格式 | ONNX | GGUF |
+| 运行时 | ONNX Runtime | ggml / llama.cpp 体系 |
+| K3 运行方式 | X100 通用 CPU / SpaceMIT ONNX Runtime EP | AI CPU 相关优化 |
+| 模型覆盖范围 | 较广 | 主要覆盖 FunASR 模型 |
+| VAD | 支持 | 支持 FSMN-VAD |
+| 流式 ASR | 支持 | 支持分段式流式输出 |
+| 离线 ASR | 支持 | 支持 |
+| 量化模型 | ONNX INT8 等 | GGUF Q4/Q5/Q8/F16 等 |
+| 功能完整度 | 高 | 主要聚焦 ASR/VAD |
+| 主要优势 | 架构成熟、模型丰富、接口稳定 | Runtime 轻量、量化友好、适合本地部署 |
+| 主要不足 | SpaceMIT EP 对部分模型加速收益有限 | 模型数量和通用接口丰富度较低 |
 
-### 优点
+需要特别注意，AI CPU / NPU 并不意味着一定比通用 CPU 更快。部署时应针对具体模型分别测试通用 CPU、AI CPU、SpaceMIT EP、线程数和量化精度。
 
-* 模型生态成熟
-* ASR 模型覆盖范围广
-* 接口稳定
-* VAD 等语音能力完整
-* 更换模型时上层业务改动较小
+## 3. K3 部署方式
 
-### 注意
+### 3.1 sherpa-onnx
 
-使用 sherpa-onnx 时，板端需要同时部署对应的：
+sherpa-onnx 的源码、SpacemiT ONNX Runtime/EP 依赖、可选 ALSA 依赖和构建指南位于 `sherpa-onnx/`。完整交叉工具链因体积过大未提交，具体获取方式见 `sherpa-onnx/BUILD_K3_OHOS.md`。模型和最终应用程序仍需根据实际业务单独准备。
 
-```text
-ONNX Runtime 动态库
-```
+### 3.2 llama-funasr-cpp
 
-当前实测中，部分模型使用 **SpaceMIT AI CPU / EP** 后并不一定比通用 CPU 更快。
-
----
-
-## 2.2 llama-funasr-cpp
-
-`llama-funasr-cpp` 基于：
-
-* llama.cpp
-* ggml
-* FunASR Runtime
-
-主要用于 FunASR 模型的本地 C/C++ 推理。
-
-当前支持：
-
-* Fun-ASR-Nano
-* SenseVoice
-* Paraformer
-* FSMN-VAD
-
-模型主要使用针对当前 Runtime 导出的 **GGUF 权重**。
-
-### 主要特点
-
-* Runtime 较轻量
-* 适合端侧部署
-* GGUF 量化方便
-* 对 Fun-ASR-Nano 支持较有针对性
-* 可使用 K3 AI CPU 相关优化
-
----
-
-### Fun-ASR-Nano 流式能力
-
-当前仓库在离线识别基础上增加了：
-
-```text
-Fun-ASR-Nano
-+
-FSMN-VAD
-+
-分段式流式识别
-```
-
-数据流程：
-
-```text
-PCM 输入
-   ↓
-FSMN-VAD
-   ↓
-语音分段
-   ↓
-Fun-ASR-Nano
-   ↓
-partial / final 输出
-```
-
-需要注意：
-
-> 当前“流式识别”指持续接收 PCM，并通过 VAD 分段后输出 `partial/final` 事件。
-
-模型本身仍会针对音频窗口重新执行推理，因此：
-
-```text
-分段式流式识别 ≠ 严格的 causal streaming encoder
-```
-
----
-
-## 2.3 框架能力对比
-
-| 对比项        | sherpa-onnx             | llama-funasr-cpp          |
-| ---------- | ----------------------- | ------------------------- |
-| 框架定位       | 通用 ONNX 语音推理框架          | FunASR C/C++ 边缘推理 Runtime |
-| 模型格式       | ONNX                    | GGUF                      |
-| 推理 Runtime | ONNX Runtime            | ggml / llama.cpp          |
-| K3 运行方式    | 通用 CPU / SpaceMIT EP    | AI CPU 相关优化               |
-| 模型覆盖       | 广                       | 主要为 FunASR                |
-| VAD        | 支持                      | FSMN-VAD                  |
-| 离线 ASR     | 支持                      | 支持                        |
-| 流式 ASR     | 支持                      | 分段式流式输出                   |
-| 量化         | INT8 等                  | Q4 / Q5 / Q8 / F16        |
-| 功能完整度      | 高                       | 聚焦 ASR / VAD              |
-| 主要优势       | 成熟、模型丰富、接口稳定            | Runtime 轻量、量化友好           |
-| 主要不足       | 部分模型使用 SpaceMIT EP 收益有限 | 模型覆盖和通用接口较少               |
-
----
-
-## 2.4 关于 AI CPU / NPU 加速
-
-需要特别注意：
-
-> **AI CPU / NPU 并不意味着一定比通用 CPU 更快。**
-
-实际性能取决于：
-
-* 模型结构
-* 算子支持情况
-* 数据搬运开销
-* Execution Provider 实现
-* 线程数量
-* 模型量化方式
-* 内存带宽
-* 输入音频长度
-
-因此建议分别测试：
-
-```text
-通用 CPU
-AI CPU
-SpaceMIT EP
-不同线程数
-不同量化精度
-```
-
-最终以板端实测结果为准。
-
----
-
-# 3. K3 部署方式
-
-## 3.1 sherpa-onnx
-
-K3/OpenHarmony 相关资料位于：
-
-```text
-sherpa-onnx/
-```
-
-包含：
-
-* sherpa-onnx 源码
-* SpaceMIT ONNX Runtime / EP
-* 可选 ALSA 依赖
-* toolchain 配置
-* `prebuilt/riscv64-ohos-musl-spacemit-2.0.6/bin/` 和 `lib/` 板端预编译产物
-* 编译文档
-
-完整交叉编译工具链由于体积较大未提交仓库。
-
-获取方式见：
-
-```text
-sherpa-onnx/BUILD_K3_OHOS.md
-```
-
-模型和最终业务程序需根据实际项目单独准备。
-
-如果不需要重新编译，可直接使用预编译目录中的 `bin/` 和 `lib/`，并将模型
-文件复制到板端后设置 `LD_LIBRARY_PATH`。
-
----
-
-## 3.2 llama-funasr-cpp
-
-仓库提供 RISC-V OpenHarmony 交叉编译脚本：
+本仓库提供 RISC-V OHOS 交叉编译脚本：
 
 ```bash
 scripts/build-riscv64-spacemit-ohos.sh
 ```
 
-### 编译依赖
+脚本依赖：
 
-需要准备：
+- SpaceMIT RISC-V OHOS toolchain；
+- SpaceMIT llama.cpp checkout；
+- 对应的 `riscv64-spacemit-ohos.cmake` toolchain 文件。
 
-* SpaceMIT RISC-V OHOS toolchain
-* SpaceMIT llama.cpp checkout
-* `riscv64-spacemit-ohos.cmake`
-
-### 编译产物
-
-默认位于：
+构建产物位于：
 
 ```text
 build-riscv64-ohos/package/bin/
 ```
 
-### 模型权重
+模型文件不存储在 GitHub 仓库中，需要根据各 Runtime README 下载或转换 GGUF 模型。
 
-GGUF 模型文件不存储在本 GitHub 仓库中。
+## 4. K3 上效果较优的 ASR 模型
 
-请根据各 Runtime README：
+### 4.1 SenseVoice-small
 
-* 下载官方 GGUF 模型；
-* 或自行转换模型。
+SenseVoice-small 参数量约为 **234M**，采用非自回归端到端架构。本方案使用 **INT8 ONNX** 量化模型，通过 sherpa-onnx 推理。在 K3 通用 CPU 上速度较快，适合对实时性、资源占用和工程稳定性要求较高的场景。
 
----
+### 4.2 Fun-ASR-Nano
 
-# 4. K3 上效果较优的 ASR 模型
+Fun-ASR-Nano 参数量约为 **800M**，采用 Audio Encoder + Adaptor + LLM 的架构，其中包含约 0.6B 参数的 Qwen3 LLM。当前 GGUF 部署方案中，Encoder/Adaptor 使用 F16 权重，LLM 可使用 Q4_K_M 或 Q5_K_M 量化。
 
-## 4.1 SenseVoice-small
+相比 SenseVoice-small，Fun-ASR-Nano 模型更大、解码更复杂，但在上下文理解、专业名词、同音词和复杂文本场景下具有更高的识别准确率。
 
-SenseVoice-small 参数量约：
+**显著缺陷：Fun-ASR-Nano 属于基于 LLM 的生成式 ASR 模型，相比于sensevoice存在严重幻觉。在长时间静音、低信噪比背景噪声、非语音音频或语音内容不清晰的情况下，模型可能受历史上下文和语言模型先验影响，生成音频中实际并不存在的词句。对于需要长时间连续监听、无人值守或对误触发较为敏感的应用场景，需要额外结合 VAD、静音过滤、置信度判定等机制抑制此类问题。**
 
-```text
-234M
-```
+### 4.3 性能对比
 
-架构：
+| 对比项 | SenseVoice-small | Fun-ASR-Nano |
+|---|---:|---:|
+| 参数量 | 约 234M | 约 800M |
+| 推理框架 | sherpa-onnx | llama-funasr-cpp |
+| 模型格式 | ONNX | GGUF |
+| 量化方式 | INT8 | Encoder/Adaptor F16 + LLM Q4_K_M/Q5_K_M |
+| K3 计算单元 | X100 通用 CPU | AI CPU |
+| 当前测试核数 | 4 核 | 8 核 |
+| RTF | 约 0.07 | 约 0.25～0.3 |
+| 实时性能 | 较高 | 中等 |
+| 识别准确率 | 较高 | 更高 |
+| 上下文理解 | 一般 | 较强 |
+| 专业名词识别 | 较好 | 更好 |
+| 标点 / ITN | 模型输出较完整 | 支持较完整文本输出 |
+| VAD 集成 | sherpa-onnx 原生支持 | FSMN-VAD |
 
-```text
-非自回归端到端 ASR
-```
+### 4.4 AISHELL-1 准确率测试
 
-当前 K3 方案使用：
+AISHELL-1 test 包含 7176 条普通话音频，累积音频时长约 10 小时。
 
-```text
-SenseVoice-small
-+
-INT8 ONNX
-+
-sherpa-onnx
-+
-4 核通用 CPU
-```
+识别正确率定义为：`1 - CER = 1 -（替换数 + 删除数 + 插入数）/ 参考字符数`。
 
-### 特点
+| 测试指标 | Fun-ASR-Nano | SenseVoice-small |
+|---|---:|---:|
+| 替换数 | **1,621** | 2,892 |
+| 删除数 | 119 | **82** |
+| 插入数 | **110** | 124 |
+| 总错误数 | **1,850** | 3,098 |
+| 识别正确率 | **98.23%** | **97.04%** |
 
-* 推理速度快
-* RTF 较低
-* 资源占用较低
-* 输出稳定
-* 标点较完整
-* 支持 ITN
-* 适合长时间运行
+## 5. 命令行使用
 
-当前实测 RTF：
+## 5.1 sherpa-onnx使用sensevoice指令
 
-```text
-约 0.07
-```
-
----
-
-## 4.2 Fun-ASR-Nano
-
-Fun-ASR-Nano 参数量约：
-
-```text
-800M
-```
-
-基本架构：
-
-```text
-Audio Encoder
-    ↓
-Adaptor
-    ↓
-Qwen3 LLM
-```
-
-其中包含约：
-
-```text
-0.6B Qwen3 LLM
-```
-
-当前 GGUF 部署配置：
-
-| 模块      | 权重              |
-| ------- | --------------- |
-| Encoder | F16             |
-| Adaptor | F16             |
-| LLM     | Q4_K_M / Q5_K_M |
-
-### 优势
-
-相比 SenseVoice-small，Fun-ASR-Nano 在以下场景表现更好：
-
-* 上下文理解
-* 专业名词
-* 同音词
-* 长句识别
-* 复杂文本
-* 语言模型相关纠错
-
-代价是：
-
-* 模型更大
-* 解码链路更复杂
-* 推理速度更慢
-* 内存占用更高
-
----
-
-### 4.2.1 主要缺陷：LLM 幻觉
-
-Fun-ASR-Nano 属于 **基于 LLM 的生成式 ASR 模型**。
-
-与 SenseVoice-small 等传统端到端 ASR 相比，其语言生成能力更强，同时也带来了更加明显的 **Hallucination（幻觉）风险**。
-
-以下情况尤其容易出现问题：
-
-* 长时间静音
-* 持续背景噪声
-* 低信噪比音频
-* 非语音声音
-* 语音内容模糊
-* VAD 切分不准确
-* 上下文存在较强语言提示
-
-模型可能受到：
-
-```text
-历史上下文
-+
-LLM 语言先验
-```
-
-影响，从而生成音频中实际不存在的词句。
-
-典型现象：
-
-```text
-没有人说话
-    ↓
-持续存在环境噪声
-    ↓
-模型仍输出完整语句
-```
-
-因此，在以下场景中需要重点处理：
-
-* 长时间连续监听
-* 无人值守 ASR
-* 会议设备
-* 语音助手
-* 误触发敏感系统
-
-建议结合：
-
-```text
-VAD
-+
-静音过滤
-+
-最小时长限制
-+
-置信度判定
-+
-输出过滤
-+
-上下文重置
-```
-
-降低幻觉输出的概率。
-
----
-
-## 4.3 性能对比
-
-| 对比项      | SenseVoice-small |                            Fun-ASR-Nano |
-| -------- | ---------------: | --------------------------------------: |
-| 参数量      |           约 234M |                                  约 800M |
-| 推理框架     |      sherpa-onnx |                        llama-funasr-cpp |
-| 模型格式     |             ONNX |                                    GGUF |
-| 量化方式     |             INT8 | Encoder/Adaptor F16 + LLM Q4_K_M/Q5_K_M |
-| K3 计算单元  |      X100 通用 CPU |                                  AI CPU |
-| 测试核数     |              4 核 |                                     8 核 |
-| RTF      |       **约 0.07** |                          **约 0.25～0.3** |
-| 实时性能     |                高 |                                      中等 |
-| 识别准确率    |               较高 |                                      更高 |
-| 上下文理解    |               一般 |                                      较强 |
-| 专业名词     |               较好 |                                      更好 |
-| 标点 / ITN |              较完整 |                                     较完整 |
-| VAD      | sherpa-onnx 原生支持 |                                FSMN-VAD |
-| 幻觉风险     |               较低 |                                  **较高** |
-
-### 简单选型建议
-
-如果优先考虑：
-
-```text
-速度
-稳定性
-低资源占用
-长时间运行
-```
-
-推荐：
-
-```text
-SenseVoice-small
-```
-
-如果优先考虑：
-
-```text
-准确率
-上下文理解
-专业名词
-复杂文本
-```
-
-推荐：
-
-```text
-Fun-ASR-Nano
-```
-
----
-
-# 5. AISHELL-1 准确率测试
-
-AISHELL-1 `test` 数据集包含：
-
-```text
-7176 条普通话音频
-约 10 小时音频
-```
-
-识别正确率计算方式：
-
-```text
-识别正确率 = 1 - CER
-```
-
-其中：
-
-```text
-CER =（替换数 + 删除数 + 插入数）/ 参考字符数
-```
-
-## 测试结果
-
-| 指标    | Fun-ASR-Nano | SenseVoice-small |
-| ----- | -----------: | ---------------: |
-| 替换数   |    **1,621** |            2,892 |
-| 删除数   |          119 |           **82** |
-| 插入数   |      **110** |              124 |
-| 总错误数  |    **1,850** |            3,098 |
-| 识别正确率 |   **98.23%** |       **97.04%** |
-
-从当前测试结果看：
-
-```text
-Fun-ASR-Nano
-98.23%
-
-SenseVoice-small
-97.04%
-```
-
-Fun-ASR-Nano 的整体字符识别准确率更高，但其部署成本、推理速度和幻觉风险也明显高于 SenseVoice-small。
-
----
-
-# 6. 命令行使用
-
-## 6.1 sherpa-onnx + SenseVoice
-
-进入 sherpa-onnx 目录：
-
+SenseVoice：
 ```bash
 cd /path/to/sherpa-onnx/
-```
-
-执行：
-
-```bash
 ./bin/sherpa-onnx-vad-with-offline-asr \
   --silero-vad-model=silero_vad.onnx \
   --sense-voice-model=./asr/sensevoice/model_quant_optimized.onnx \
@@ -666,59 +269,24 @@ cd /path/to/sherpa-onnx/
   [audio_file.wav]
 ```
 
-当前推荐：
+## 5.2 llama-funasr使用funasr-nano指令
 
-```text
-SenseVoice-small INT8
-+
-4 threads
-+
-通用 CPU
-```
-
----
-
-## 6.2 llama-funasr-cpp + Fun-ASR-Nano
-
-执行 llama.cpp Runtime 前：
-
-```bash
+在执行llama.cpp推理框架之前，先执行：
 mount -o rw,remount /
 spacemit-tcm-smi -c
-```
 
----
-
-### 6.2.1 离线识别
-
+Fun-ASR-Nano CLI：
 ```bash
 cd /path/to/funasr
-```
-
-执行：
-
-```bash
 ./bin/llama-funasr-cli \
   --enc ./fun-asr-nano/funasr-encoder-f16.gguf \
   -m ./fun-asr-nano/qwen3-0.6b-q4km.gguf \
-  --vad fsmn-vad.gguf \
+  --vad fsmn-vad.gguf
   -a test.wav \
   --output text
 ```
 
----
-
-### 6.2.2 流式识别
-
-从 ALSA 持续读取：
-
-```text
-16 kHz
-16-bit PCM
-Mono
-```
-
-执行：
+Fun-ASR-Nano 流式识别：
 
 ```bash
 arecord -q \
@@ -731,107 +299,31 @@ arecord -q \
   --enc fun-asr-nano/funasr-encoder-f16.gguf \
   -m fun-asr-nano/qwen3-0.6b-q4km.gguf \
   --stdin-s16le \
-  --vad fsmn-vad.gguf \
+  --vad fsmn-vad.gguf
   --output text
 ```
 
-处理链路：
 
-```text
-麦克风
-  ↓
-arecord
-  ↓
-16 kHz / S16_LE / Mono PCM
-  ↓
-FSMN-VAD
-  ↓
-Fun-ASR-Nano
-  ↓
-partial / final
-```
+## 6. 相关文档
 
----
+- [FunASR C++ RISC-V OHOS 编译与部署步骤](funasr-cpp/BUILD_RISCV64_OHOS.md)
+- [sherpa-onnx K3 OpenHarmony 编译指南](sherpa-onnx/BUILD_K3_OHOS.md)
+- [Fun-ASR-Nano Runtime](funasr-cpp/runtime/llama.cpp/fun-asr-nano/README.md)
+- [流式识别说明](funasr-cpp/runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
+- [Runtime 设计说明](funasr-cpp/runtime/llama.cpp/DESIGN.md)
 
-# 7. 方案选择
+## 7. 参考资料
+- sherpa-onnx：https://github.com/k2-fsa/sherpa-onnx
+- funasr.cpp: https://www.funasr.com/llama-cpp.html
+- K3 鸿蒙交叉编译工具链oh-20260630： https://www.funasr.com/llama-cpp.html
+- spacemit-onnxruntime: https://github.com/spacemit-com/onnxruntime/releases/tag/2.0.6
+- sensevoice ONNX模型权重: https://archive.spacemit.com/spacemit-ai/model_zoo/asr/sensevoice.tar.gz
+- funasr-nano GGUF模型权重：https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-GGUF
+- ASR相关学习https://zsc.github.io/asr_sd_tutorial/html/index.html
 
-## 优先实时性
+  ## 8. 附录
 
-推荐：
-
-```text
-sherpa-onnx
-+
-SenseVoice-small INT8
-```
-
-适用于：
-
-* 实时字幕
-* 语音命令
-* 智能终端
-* 长时间监听
-* 低功耗设备
-
----
-
-## 优先准确率
-
-推荐：
-
-```text
-llama-funasr-cpp
-+
-Fun-ASR-Nano
-```
-
-适用于：
-
-* 专业词汇识别
-* 复杂语境
-* 会议转写
-* 文本上下文要求较高的场景
-
-但需要额外处理：
-
-```text
-VAD
-幻觉
-静音
-噪声
-长时间上下文
-```
-
----
-
-# 8. 相关文档
-
-* [FunASR C++ RISC-V OHOS 编译与部署步骤](funasr-cpp/BUILD_RISCV64_OHOS.md)
-* [sherpa-onnx K3 OpenHarmony 编译指南](sherpa-onnx/BUILD_K3_OHOS.md)
-* [Fun-ASR-Nano Runtime](funasr-cpp/runtime/llama.cpp/fun-asr-nano/README.md)
-* [流式识别说明](funasr-cpp/runtime/llama.cpp/fun-asr-nano/funasr-stream/README.md)
-* [Runtime 设计说明](funasr-cpp/runtime/llama.cpp/DESIGN.md)
-
----
-
-# 9. 参考资料
-
-* sherpa-onnx
-  https://github.com/k2-fsa/sherpa-onnx
-
-* FunASR llama.cpp / funasr.cpp
-  https://www.funasr.com/llama-cpp.html
-
-* SpaceMIT K3 OpenHarmony 交叉编译工具链 `oh-20260630`
-
-* SpaceMIT ONNX Runtime
-  https://github.com/spacemit-com/onnxruntime/releases/tag/2.0.6
-
-* SenseVoice ONNX 模型
-  https://archive.spacemit.com/spacemit-ai/model_zoo/asr/sensevoice.tar.gz
-
-* Fun-ASR-Nano GGUF
-  https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-GGUF
+  ### 8.1 
 
 * ASR 学习资料
   https://zsc.github.io/asr_sd_tutorial/html/index.html
